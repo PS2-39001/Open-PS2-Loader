@@ -547,7 +547,12 @@ void bdmLaunchGame(item_list_t *itemList, int id, config_set_t *configSet)
         hddSetIdleTimeout(gHDDSpindown * 12);
         settings->hddIsLBA48 = pDeviceData->bdmHddIsLBA48;
     }
-
+    if (gAutoLaunchBDMGame == NULL) {
+        char launchMessage[96];
+        snprintf(launchMessage, sizeof(launchMessage),
+                 "Game launch test: %s", game->startup);
+        guiMsgBox(launchMessage, 0, NULL);
+    }
     if (gAutoLaunchBDMGame == NULL)
         deinit(NO_EXCEPTION, itemList->mode); // CAREFUL: deinit will call bdmCleanUp, so bdmGames/game will be freed
     else {
