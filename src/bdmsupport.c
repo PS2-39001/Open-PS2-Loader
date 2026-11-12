@@ -573,23 +573,14 @@ void bdmLaunchGame(item_list_t *itemList, int id, config_set_t *configSet)
         hddSetIdleTimeout(gHDDSpindown * 12);
         settings->hddIsLBA48 = pDeviceData->bdmHddIsLBA48;
     }
+    
     if (gAutoLaunchBDMGame == NULL) {
-        int netResult = ethLoadInitModules();
-        int udpResult = -1;
-        char launchMessage[128];
+        if (ethLoadInitModules() == 0)
+            sendGameLaunchUDP(game->startup);
+    
 
-        if (netResult == 0)
-            udpResult = sendGameLaunchUDP(game->startup);
-
-        snprintf(launchMessage, sizeof(launchMessage),
-                 "Game: %s\nETH: %d  UDP: %d",
-                 game->startup, netResult, udpResult);
-
-        guiMsgBox(launchMessage, 0, NULL);
-    }
-    if (gAutoLaunchBDMGame == NULL)
         deinit(NO_EXCEPTION, itemList->mode); // CAREFUL: deinit will call bdmCleanUp, so bdmGames/game will be freed
-    else {
+   } else {
         miniDeinit(configSet);
 
         free(gAutoLaunchBDMGame);
