@@ -3,6 +3,7 @@
 #include "include/gui.h"
 #include "include/supportbase.h"
 #include "include/bdmsupport.h"
+#include "include/ethsupport.h"
 #include "include/util.h"
 #include "include/themes.h"
 #include "include/textures.h"
@@ -19,6 +20,31 @@
 #define NEWLIB_PORT_AWARE
 #include <fileXio_rpc.h> // fileXioIoctl, fileXioDevctl
 #include <delaythread.h>
+
+static int sendGameLaunchUDP(const char *gameId)
+{
+    struct sockaddr_in destination;
+    int sock;
+    int result;
+
+    memset(&destination, 0, sizeof(destination));
+
+    destination.sin_family = AF_INET;
+    destination.sin_len = sizeof(destination);
+    destination.sin_port = htons(5005);
+    destination.sin_addr.s_addr = htonl(0xC0A83201);
+
+    sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (sock < 0)
+        return -1;
+
+    result = sendto(sock, gameId, strlen(gameId), 0,
+                    (struct sockaddr *)&destination,
+                    sizeof(destination));
+
+    close(sock);
+    return result;
+}
 
 static int iLinkModLoaded = 0;
 static int mx4sioModLoaded = 0;
@@ -548,9 +574,17 @@ void bdmLaunchGame(item_list_t *itemList, int id, config_set_t *configSet)
         settings->hddIsLBA48 = pDeviceData->bdmHddIsLBA48;
     }
     if (gAutoLaunchBDMGame == NULL) {
-        char launchMessage[96];
+        int netResult = ethLoadInitModules();
+        int udpResult = -1;
+        char launchMessage[128];
+
+        if (netResult == 0)
+            udpResult = sendGameLaunchUDP(game->startup);
+
         snprintf(launchMessage, sizeof(launchMessage),
-                 "Game launch test: %s", game->startup);
+                 "Game: %s\nETH: %d  UDP: %d",
+                 game->startup, netResult, udpResult);
+
         guiMsgBox(launchMessage, 0, NULL);
     }
     if (gAutoLaunchBDMGame == NULL)
